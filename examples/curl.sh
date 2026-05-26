@@ -7,13 +7,13 @@ ACCESS_TOKEN="your-syncnode-access-token"
 BASE="https://run.syncnode.ai"
 
 # -------- Balance (public, no Bearer) --------
-curl "$BASE/balance?uid=$API_KEY"
+curl "$BASE/balance?apiKey=$API_KEY"
 
 # -------- Chat completion via OpenRouter (synchronous) --------
 curl -X POST "$BASE/chat-completion" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"openai/gpt-4o-mini\",
     \"messages\": [{\"role\": \"user\", \"content\": \"Tell me a joke about cats.\"}],
     \"max_tokens\": 200,
@@ -24,7 +24,7 @@ curl -X POST "$BASE/chat-completion" \
 curl -X POST "$BASE/chatgpt-completion" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"gpt-4o-mini\",
     \"messages\": [{\"role\": \"user\", \"content\": \"Summarize quantum entanglement in one sentence.\"}]
   }"
@@ -33,7 +33,7 @@ curl -X POST "$BASE/chatgpt-completion" \
 SUBMIT=$(curl -s -X POST "$BASE/generate" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"bytedance/seedance-1-lite\",
     \"input\": {
       \"prompt\": \"A cat riding a bike\",
@@ -52,7 +52,7 @@ curl "$BASE/prediction-status?job_id=$JOB_ID"
 FAL_SUBMIT=$(curl -s -X POST "$BASE/fal/generate" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"fal-ai/recraft/v4.1/text-to-image\",
     \"input\": {
       \"prompt\": \"Tilt-shift miniature of a Portuguese fishing village at golden hour\",
@@ -69,7 +69,7 @@ curl "$BASE/fal/status?job_id=$FAL_JOB"
 curl -X POST "$BASE/alibaba/generate" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"wan2.7-image-pro\",
     \"input\": {
       \"messages\": [{
@@ -84,7 +84,7 @@ curl -X POST "$BASE/alibaba/generate" \
 curl -X POST "$BASE/alibaba/generate" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"model\": \"wan2.7-i2v\",
     \"input\": {
       \"prompt\": \"A cat surfing on a wave\",
@@ -98,21 +98,21 @@ curl -X POST "$BASE/alibaba/generate" \
 curl -X POST "$BASE/face-swap/run" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"source_image\": \"https://example.com/source.jpg\",
     \"target_image\": \"https://example.com/target.jpg\"
   }"
 # then: curl "$BASE/face-swap/status?job_id=..."
 
 # -------- Content moderation (public, no Bearer) --------
-curl -X POST "https://moderate.syncnode.ai/?uid=$API_KEY&what=moderation" \
+curl -X POST "https://moderate.syncnode.ai/?apiKey=$API_KEY&what=moderation" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uid\": \"$API_KEY\",
+    \"apiKey\": \"$API_KEY\",
     \"text\": \"Check this sentence for safety.\",
     \"imageUrl\": \"https://example.com/photo.jpg\"
   }"
 
 # -------- List recent tasks (Bearer required) --------
-curl "$BASE/tasks?uid=$API_KEY&page=1&size=10" \
+curl "$BASE/tasks?apiKey=$API_KEY&page=1&size=10" \
   -H "Authorization: Bearer $ACCESS_TOKEN"

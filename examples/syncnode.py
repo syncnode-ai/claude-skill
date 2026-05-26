@@ -2,7 +2,7 @@
 
 Usage:
     from syncnode import SyncNode
-    sn = SyncNode(uid=os.environ["SYNCNODE_API_KEY"])
+    sn = SyncNode(api_key=os.environ["SYNCNODE_API_KEY"])
     print(sn.balance())
 
     # Synchronous chat
@@ -30,10 +30,12 @@ class SyncNodeError(RuntimeError):
 
 
 class SyncNode:
-    def __init__(self, uid: str, access_token: Optional[str] = None):
-        if not uid:
-            raise ValueError("uid is required")
-        self.uid = uid
+    def __init__(self, api_key: Optional[str] = None, access_token: Optional[str] = None, uid: Optional[str] = None):
+        # Accept either `api_key` (preferred) or `uid` (legacy alias) for the constructor
+        key = api_key or uid
+        if not key:
+            raise ValueError("api_key is required")
+        self.api_key = key
         self.access_token = access_token
 
     # ---- internal ----
@@ -44,7 +46,7 @@ class SyncNode:
             if not self.access_token:
                 raise SyncNodeError(f"{path} requires access_token")
             headers["Authorization"] = f"Bearer {self.access_token}"
-        payload = {"uid": self.uid, **body}
+        payload = {"apiKey": self.api_key, **body}
         r = requests.post(f"{BASE}{path}", json=payload, headers=headers, timeout=60)
         try:
             data = r.json()
@@ -55,7 +57,7 @@ class SyncNode:
         return data
 
     def _get(self, path: str, params: Optional[dict] = None, needs_auth: bool = False) -> dict:
-        params = {"uid": self.uid, **(params or {})}
+        params = {"apiKey": self.api_key, **(params or {})}
         headers = {}
         if needs_auth:
             if not self.access_token:
@@ -114,8 +116,8 @@ class SyncNode:
     # ---- moderation (different base) ----
 
     def moderate(self, **body) -> dict:
-        params = {"uid": self.uid, "what": "moderation"}
-        r = requests.post(MODERATE_BASE, params=params, json={"uid": self.uid, **body}, timeout=30)
+        params = {"apiKey": self.api_key, "what": "moderation"}
+        r = requests.post(MODERATE_BASE, params=params, json={"apiKey": self.api_key, **body}, timeout=30)
         if not r.ok:
             raise SyncNodeError(f"Moderation failed: HTTP {r.status_code}")
         return r.json()
@@ -144,7 +146,7 @@ class SyncNode:
 
 if __name__ == "__main__":
     import os
-    sn = SyncNode(uid=os.environ["SYNCNODE_API_KEY"])
+    sn = SyncNode(api_key=os.environ["SYNCNODE_API_KEY"])
 
     submit = sn.fal(
         model="fal-ai/recraft/v4.1/text-to-image",

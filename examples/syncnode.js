@@ -2,14 +2,16 @@
 // No dependencies. Drop into your project and import the functions you need.
 //
 //   import { createClient } from "./syncnode.js";
-//   const sn = createClient({ uid: process.env.SYNCNODE_API_KEY });
+//   const sn = createClient({ apiKey: process.env.SYNCNODE_API_KEY });
 //   const result = await sn.chat({ model: "openai/gpt-4o-mini", messages: [...] });
 
 const BASE = "https://run.syncnode.ai";
 const MODERATE_BASE = "https://moderate.syncnode.ai";
 
-export function createClient({ uid, accessToken } = {}) {
-  if (!uid) throw new Error("createClient: uid is required");
+export function createClient({ apiKey, uid, accessToken } = {}) {
+  // Accept either `apiKey` (preferred) or `uid` (legacy alias) for the constructor
+  const key = apiKey || uid;
+  if (!key) throw new Error("createClient: apiKey is required");
 
   const post = async (path, body, { needsAuth = false } = {}) => {
     const headers = { "Content-Type": "application/json" };
@@ -20,7 +22,7 @@ export function createClient({ uid, accessToken } = {}) {
     const res = await fetch(`${BASE}${path}`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ uid, ...body }),
+      body: JSON.stringify({ apiKey: key, ...body }),
     });
     const text = await res.text();
     let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
@@ -32,7 +34,7 @@ export function createClient({ uid, accessToken } = {}) {
 
   const get = async (path, params = {}, { needsAuth = false } = {}) => {
     const url = new URL(`${BASE}${path}`);
-    url.searchParams.set("uid", uid);
+    url.searchParams.set("apiKey", key);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
     const headers = {};
     if (needsAuth) {
@@ -94,12 +96,12 @@ export function createClient({ uid, accessToken } = {}) {
 
   const moderate = async (body) => {
     const url = new URL(MODERATE_BASE);
-    url.searchParams.set("uid", uid);
+    url.searchParams.set("apiKey", key);
     url.searchParams.set("what", "moderation");
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid, ...body }),
+      body: JSON.stringify({ apiKey: key, ...body }),
     });
     if (!res.ok) throw new Error(`Moderation failed: HTTP ${res.status}`);
     return res.json();
@@ -118,7 +120,7 @@ export function createClient({ uid, accessToken } = {}) {
 // ---- Example: generate an image with FAL and wait for the result ----
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const sn = createClient({ uid: process.env.SYNCNODE_API_KEY });
+  const sn = createClient({ apiKey: process.env.SYNCNODE_API_KEY });
 
   const submit = await sn.fal({
     model: "fal-ai/recraft/v4.1/text-to-image",

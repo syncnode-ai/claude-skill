@@ -23,8 +23,8 @@ SyncNode is a unified AI API gateway hosted at `https://run.syncnode.ai`. Users 
 
 Before writing any code, make sure these are settled:
 
-1. **API key** — your SyncNode account credential. Get it by signing up at `https://syncnode.ai/register` and copying it from `/api_keys`. It's sent on the wire as `uid` (in the JSON body or query string). Every request needs it.
-2. **Access token** — a JWT issued by SyncNode for additional authentication on protected endpoints. Sent as `Authorization: Bearer <token>`. Grab it from the `/api_keys` page. A few endpoints accept the API key alone (see Public Endpoints below).
+1. **API key** — your SyncNode account credential. Get it by signing up at `https://syncnode.ai/register` and copying it from `/api_keys`. It's sent in every request as the JSON body field `apiKey` (or `api_key`). The legacy field name `uid` is also accepted for backward compatibility — all three behave identically. Every request needs it.
+2. **Access token** — a JWT issued by SyncNode for additional authentication on protected endpoints. Sent as `Authorization: Bearer <token>`. Grab it from the `/api_keys` page. Most generation endpoints accept the API key alone (see Public Endpoints below).
 3. **Provider Credentials** — the user must store their own Replicate / OpenAI / OpenRouter / FAL / Alibaba keys in the "Connected Provider Credentials" section of `/api_keys` *before* calling endpoints that route to those providers. SyncNode never proxies a call without the user's own provider credential.
 4. **Job lifecycle** — image/video calls are async. `POST /generate` returns a `job_id` and `status: in_progress`. The actual output arrives later via webhook or by polling `/prediction-status?job_id=...`. Chat calls are synchronous.
 5. **Pricing** — flat per-call, debited from the user's SyncNode balance. New accounts get $5 free. Auto-recharge fires when balance drops below the cheapest call.
@@ -41,7 +41,7 @@ If the user hasn't signed up yet, point them at `https://syncnode.ai/register` b
 ## Authentication
 
 Most endpoints require both:
-- `uid` in the request body (or query string for GET)
+- `apiKey` in the request body (or query string for GET) — `uid` and `api_key` are also accepted as aliases
 - `Authorization: Bearer <JWT>` header
 
 **Public endpoints** (API key only, no Bearer token needed) — useful for server-to-server flows where the JWT would be a hassle:
@@ -55,7 +55,7 @@ Most endpoints require both:
 - `GET /balance`
 - `POST https://moderate.syncnode.ai`
 
-`/api-keys`, `/tasks`, `/billing-history`, `/dashboard`, `/hosts`, `/profile` etc. require the Bearer token AND `jwt.sub === uid`.
+`/api-keys`, `/tasks`, `/billing-history`, `/dashboard`, `/hosts`, `/profile` etc. require the Bearer token AND the JWT subject must match the supplied API key.
 
 ## Endpoint reference
 
@@ -63,7 +63,7 @@ Most endpoints require both:
 
 ```
 POST /generate
-Body: { uid, model, input }
+Body: { apiKey, model, input }
 ```
 
 - `model` — Replicate model identifier or version hash (e.g. `bytedance/seedance-1-lite`)
@@ -75,7 +75,7 @@ Body: { uid, model, input }
 
 ```
 POST /fal/generate
-Body: { uid, model, input }
+Body: { apiKey, model, input }
 GET  /fal/status?job_id=<job_id>
 ```
 
@@ -89,7 +89,7 @@ GET  /fal/status?job_id=<job_id>
 
 ```
 POST /alibaba/generate
-Body: { uid, model, input, parameters?, endpoint? }
+Body: { apiKey, model, input, parameters?, endpoint? }
 GET  /alibaba/status?job_id=<job_id>
 ```
 
@@ -103,7 +103,7 @@ GET  /alibaba/status?job_id=<job_id>
 
 ```
 POST /chat-completion
-Body: { uid, model, messages, max_tokens?, temperature?, ... }
+Body: { apiKey, model, messages, max_tokens?, temperature?, ... }
 ```
 
 - Routes to `https://openrouter.ai/api/v1/chat/completions`. Pass any OpenRouter-supported params.
@@ -114,7 +114,7 @@ Body: { uid, model, messages, max_tokens?, temperature?, ... }
 
 ```
 POST /chatgpt-completion
-Body: { uid, model, messages, max_tokens?, temperature?, ... }
+Body: { apiKey, model, messages, max_tokens?, temperature?, ... }
 ```
 
 - Routes to `https://api.openai.com/v1/chat/completions`. Synchronous, returns OpenAI shape.
@@ -124,7 +124,7 @@ Body: { uid, model, messages, max_tokens?, temperature?, ... }
 
 ```
 POST /face-swap/run
-Body: { uid, source_image, target_image }
+Body: { apiKey, source_image, target_image }
 GET  /face-swap/status?job_id=<job_id>
 ```
 
@@ -136,7 +136,7 @@ GET  /face-swap/status?job_id=<job_id>
 
 ```
 POST https://moderate.syncnode.ai
-Body: { uid, text?, imageUrl?, imageBase64?, imageMime? }
+Body: { apiKey, text?, imageUrl?, imageBase64?, imageMime? }
 ```
 
 - No provider credential required. SyncNode runs the moderation server-side.
@@ -154,7 +154,7 @@ Returns `{ job_id, replicate_status, output, updated }`. Call repeatedly until `
 ### Balance
 
 ```
-GET /balance?uid=<uid>
+GET /balance?apiKey=<api_key>
 ```
 
 Returns `{ balance }`. Public — useful to surface remaining credit in the user's UI before making expensive calls.
@@ -162,7 +162,7 @@ Returns `{ balance }`. Public — useful to surface remaining credit in the user
 ### Listing tasks
 
 ```
-GET /tasks?uid=<uid>&page=1&size=10
+GET /tasks?apiKey=<api_key>&page=1&size=10
 Headers: Authorization: Bearer <jwt>
 ```
 
@@ -194,7 +194,7 @@ Don't poll faster than every 1–2 seconds. Each status call hits SyncNode and t
 
 | Status | Meaning | Fix |
 |---|---|---|
-| 400 `Missing uid or model` | Client forgot a required field | Send required fields |
+| 400 `Missing API key or model` | Client forgot a required field | Send required fields |
 | 400 `No <provider> API key found` | User didn't save that provider's credential under "Connected Provider Credentials" on `/api_keys` | Direct user to `https://syncnode.ai/api_keys` |
 | 401 `Unauthorized` | Bearer token missing or doesn't match the API key | Re-authenticate to get a fresh access token |
 | 402 `Insufficient balance` | User has no balance and no card on file | Direct to billing `/billing` to add card or top up |
